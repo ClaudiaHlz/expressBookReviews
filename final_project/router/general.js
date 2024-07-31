@@ -4,10 +4,41 @@ let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
 
+function checkUserExists(uname){
+  let filtered_list = users.filter((user) => user.username === uname);
 
+  console.log(filtered_list)
+
+  if(filtered_list.length > 0){
+    return true;
+  }else{
+    return false;
+  }
+}
+
+// TASK 6
 public_users.post("/register", (req,res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+  // get username and password from the request body
+  const uname = req.body.username;
+  const pwd = req.body.password;
+
+  // check if both values are provided
+  if (uname && pwd){
+    // check it the user already exists
+    if (!checkUserExists(uname)) {
+      //add user
+      users.push({
+        "username": uname,
+        "password": pwd
+      });
+      return res.status(200).json({message: "User successfully created. Welcome!"});
+    }else{
+      return res.status(404).json({message: "User already exists."});
+    }
+  }else{
+    return res.status(404).json({message: "Please submit a username and password!"});
+  }
+
 });
 
 // TASK 1
@@ -85,8 +116,20 @@ public_users.get('/title/:title',function (req, res) {
   }
 });
 
+// TASK 5
 //  Get book review
 public_users.get('/review/:isbn',function (req, res) {
+  const isbn_req = req.params.isbn;
+
+  if(books[isbn_req] && books[isbn_req].reviews){
+    console.log(books[isbn_req].reviews);
+  /*}else if(books[isbn_req].reviews.length == 0){
+    res.send("There are no reviews for this book yet!")*/
+    return res.status(200).send(books[isbn_req].reviews);
+  }else{
+    return res.status(400).send("Book or review not found!");
+  }
+
   //Write your code here
   return res.status(300).json({message: "Yet to be implemented"});
 });
