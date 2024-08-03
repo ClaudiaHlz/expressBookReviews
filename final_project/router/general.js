@@ -4,17 +4,6 @@ let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
 
-function checkUserExists(uname){
-  let filtered_list = users.filter((user) => user.username === uname);
-
-  console.log(filtered_list)
-
-  if(filtered_list.length > 0){
-    return true;
-  }else{
-    return false;
-  }
-}
 
 // TASK 6
 public_users.post("/register", (req,res) => {
@@ -25,7 +14,7 @@ public_users.post("/register", (req,res) => {
   // check if both values are provided
   if (uname && pwd){
     // check it the user already exists
-    if (!checkUserExists(uname)) {
+    if (!isValid(uname)) {
       //add user
       users.push({
         "username": uname,
@@ -41,64 +30,126 @@ public_users.post("/register", (req,res) => {
 
 });
 
-// TASK 1
+// TASK 1 
+// TASK 10: Promise callback
 // Get the book list available in the shop
-public_users.get('/',function (req, res) {
-  //Write your code here
+public_users.get('/', function (req, res) {
+  // TASK 10:
+  // create promise
+  let returnBookListPromise = new Promise((resolve, reject) => {
+    resolve(JSON.stringify(books, null, 4));
+  })
 
-  return res.status(200).send(JSON.stringify(books, null, 4));
+  // call promise function
+  returnBookListPromise.then(
+    (success_val) => {return res.status(200).send(success_val)}
+  )
+
+  /* TASK 1:
+  // return books
+  // return res.status(200).send(JSON.stringify(books, null, 4));*/
 });
 
 // TASK 2
+// TASK 11: + Promise callback
 // Get book details based on ISBN
 public_users.get('/isbn/:isbn',function (req, res) {
   const isbn_req = req.params.isbn;
 
+  //TASK 11: Promise
+  // create promise
+  let returnBookFromISBN = new Promise((resolve, reject) => {
+    if(books[isbn_req]){
+      resolve(JSON.stringify(books[isbn_req], null, 4));
+    }else{
+      reject("ISBN does not exist!");
+    } 
+  })
+
+  // call promise function
+  returnBookFromISBN.then(
+    (success) => {return res.status(200).send(success)},
+    (err) => {return res.status(400).send(err)}
+  )
+
+  /*TASK 2
   if(books[isbn_req]){
     return res.status(200).send(JSON.stringify(books[isbn_req], null, 4));
   }else{
     return res.status(400).send("ISBN does not exist!");
-  }  
- });
+  } */ 
+});
   
 // TASK 3
+// TASK 12: Promise
 // Get book details based on author
 public_users.get('/author/:author',function (req, res) {
   const author_req = req.params.author;
 
-  //console.log(Object.entries(books))
-  let book_list = Object.entries(books);
-  let new_list = [];
-  // Option 1: manual filtering
-  /*book_list.forEach(([isbn, entry]) => {
-    if (entry.author == author_req){
-      new_list.push(entry);
-    }
-  });
-  console.log(new_list);*/
+  // create promise
+  let returnBookFromAuthor = new Promise((resolve, reject) => {
+    let book_list = Object.entries(books);
+    let filtered_list = book_list.filter((id) => id[1].author === author_req);
+    if(filtered_list.length>0){
+      resolve(filtered_list);
+    }else{
+      reject("Author not found!");
+    } 
+  })
 
-  // Option 2: using .filter()
+  // call promise function
+  returnBookFromAuthor.then(
+    (success) => {return res.status(200).send(success)},
+    (err) => {return res.status(400).send(err)}
+  )
+
+  /*TASK 3
+  let book_list = Object.entries(books);
   let filtered_list = book_list.filter((id) => id[1].author === author_req);
-  //console.log(filtered_list)
 
   // return the filtered list
   if(filtered_list){
-    //return res.status(200).send(JSON.stringify(filtered_list, null, 4));
     return res.status(200).send(filtered_list);
   }else{
     return res.status(400).send("Author not found!");
-  }
+  }*/
 });
 
 // TASK 4
+// TASK 13: Promises
 // Get all books based on title
 public_users.get('/title/:title',function (req, res) {
   const title_req = req.params.title;
 
-  //console.log(Object.entries(books))
+  //TASK 13:
+  let returnBookFromTitle = new Promise((resolve, reject) => {
+    let book_list = Object.entries(books);
+    let filtered_list = [];
+
+    // different approach: manual filtering
+    book_list.forEach(([isbn, entry]) => {
+      if (entry.title == title_req){
+        filtered_list.push([isbn, entry]);
+      }
+    });
+
+    if(filtered_list.length>0){
+      resolve(filtered_list);
+    }else{
+      reject("Book title not found!");
+    }
+  })
+
+  returnBookFromTitle.then(
+    (success) => {return res.status(200).send(success)},
+    (err) => {return res.status(400).send(err)}
+  )
+
+  /*TASK 4 
   let book_list = Object.entries(books);
   let filtered_list = [];
-  // Option 1: manual filtering
+
+  // different approach: manual filtering
   book_list.forEach(([isbn, entry]) => {
     if (entry.title == title_req){
       filtered_list.push([isbn, entry]);
@@ -106,14 +157,12 @@ public_users.get('/title/:title',function (req, res) {
   });
   console.log(filtered_list);
 
-
   // return the filtered list
   if(filtered_list){
-    //return res.status(200).send(JSON.stringify(filtered_list, null, 4));
     return res.status(200).send(filtered_list);
   }else{
     return res.status(400).send("Book title not found!");
-  }
+  }*/
 });
 
 // TASK 5
@@ -123,15 +172,10 @@ public_users.get('/review/:isbn',function (req, res) {
 
   if(books[isbn_req] && books[isbn_req].reviews){
     console.log(books[isbn_req].reviews);
-  /*}else if(books[isbn_req].reviews.length == 0){
-    res.send("There are no reviews for this book yet!")*/
     return res.status(200).send(books[isbn_req].reviews);
   }else{
     return res.status(400).send("Book or review not found!");
   }
-
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
 });
 
 module.exports.general = public_users;
